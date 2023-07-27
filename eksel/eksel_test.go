@@ -38,3 +38,28 @@ func TestParse(t *testing.T) {
 	out := []Data{{Name: "Patience Whitfield", Phone: "(954) 845-3772", Email: "montes.nascetur@hotmail.org", Age: 19, Address: "Ap #726-6321 Aliquam Street", FavNum: 1, Country: "Vietnam"}, {Name: "Brennan Collins", Phone: "(232) 454-4524", Email: "tempor@icloud.edu", Age: 23, Address: "867-988 Sed St.", FavNum: 15, Country: "Mexico"}}
 	assert.Equal(t, out, d)
 }
+
+func TestParse2(t *testing.T) {
+	file, err := excelize.OpenFile("./testdata/data-unsorted-header.xlsx")
+	assert.NoError(t, err, "unable to open file")
+	rows, err := file.Rows("Sheet1")
+	assert.NoError(t, err)
+
+	headerMap := map[string]string{
+		"Name":     "name",
+		"Age":      "age",
+		"Birthday": "birthday",
+	}
+	type Data struct {
+		Name     string `lookup:"name"`
+		Age      int    `lookup:"age"`
+		Birthday string `lookup:"birthday"`
+	}
+	d := []Data{}
+
+	err = Parse(rows, headerMap, &d)
+	assert.NoError(t, err)
+
+	expect := []Data{{Name: "Kaye Goff", Age: 26, Birthday: "April"}, {Name: "Adrienne Kirby", Age: 22, Birthday: "May"}, {Name: "John", Age: 27, Birthday: "May"}}
+	assert.Equal(t, expect, d)
+}
