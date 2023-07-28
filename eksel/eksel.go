@@ -122,6 +122,7 @@ func Parse(rows *excelize.Rows, header map[string]string, dest interface{}) erro
 					dateLayouts := []string{
 						"2006-01-02",
 						"02/01/06",
+						"02/01/2006",
 					}
 					timeLayouts := []string{
 						"15:04:05",
