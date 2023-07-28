@@ -63,3 +63,39 @@ func TestParse2(t *testing.T) {
 	expect := []Data{{Name: "Kaye Goff", Age: 26, Birthday: "April"}, {Name: "Adrienne Kirby", Age: 22, Birthday: "May"}, {Name: "John", Age: 27, Birthday: "May"}}
 	assert.Equal(t, expect, d)
 }
+
+func BenchmarkParse_1000(b *testing.B) {
+	rows := open(b, "./testdata/data-1000.xlsx")
+	headerMap := map[string]string{
+		"Name":             "name",
+		"Phone":            "phone",
+		"Email":            "email",
+		"Age":              "age",
+		"Address":          "address",
+		"Favourite Number": "fav_num",
+		"Country":          "country",
+	}
+	type Data struct {
+		Name    string `lookup:"name"`
+		Phone   string `lookup:"phone"`
+		Email   string `lookup:"email"`
+		Age     int    `lookup:"age"`
+		Address string `lookup:"address"`
+		FavNum  int    `lookup:"fav_num"`
+		Country string `lookup:"country"`
+	}
+
+	for i := 0; i < b.N; i++ {
+		var data []Data
+		assert.NoError(b, Parse(rows, headerMap, &data))
+	}
+}
+
+func open(b *testing.B, filename string) *excelize.Rows {
+	b.Helper()
+	file, err := excelize.OpenFile(filename)
+	assert.NoError(b, err, "unable to open file")
+	rows, err := file.Rows("Sheet1")
+	assert.NoError(b, err)
+	return rows
+}
