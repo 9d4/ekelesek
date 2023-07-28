@@ -3,8 +3,11 @@ package eksel
 import (
 	"errors"
 	"github.com/xuri/excelize/v2"
+	"log"
 	"reflect"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // Parse transforms rows into desired list of struct.
@@ -82,12 +85,86 @@ func Parse(rows *excelize.Rows, header map[string]string, dest interface{}) erro
 			if !field.IsValid() {
 				return errors.New("invalid field: " + field.String())
 			}
-			if field.Kind() == reflect.String {
-				field.SetString(cells[idx])
-			}
-			if field.Kind() == reflect.Int {
-				integer, _ := strconv.Atoi(cells[idx])
-				field.SetInt(int64(integer))
+
+			cellValue := cells[idx]
+			switch field.Kind() {
+			case reflect.String:
+				field.SetString(cellValue)
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				intVal, err := strconv.ParseInt(cellValue, 10, 64)
+				if err == nil {
+					field.SetInt(intVal)
+				}
+			case reflect.Float32, reflect.Float64:
+				floatVal, err := strconv.ParseFloat(cellValue, 64)
+				if err == nil {
+					field.SetFloat(floatVal)
+				}
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				uintVal, err := strconv.ParseUint(cellValue, 10, 64)
+				if err == nil {
+					field.SetUint(uintVal)
+				}
+			case reflect.Bool:
+				boolVal, err := strconv.ParseBool(strings.ToLower(cellValue))
+				if err == nil {
+					field.SetBool(boolVal)
+				}
+			case reflect.Struct:
+				f := reflect.Indirect(item).FieldByName(fieldName)
+				fi := f.Interface()
+
+				switch fi.(type) {
+				case time.Time:
+					var timeVal time.Time
+					var err error
+
+					dateLayouts := []string{
+						"2006-01-02",
+						"02/01/06",
+					}
+					timeLayouts := []string{
+						"15:04:05",
+						"15:04",
+					}
+					combinedLayouts := []string{
+						"2006-01-02 15:04:05",
+						"2006-01-02 15:04",
+						"02/01/06 15:04:05",
+						"02/01/06 15:04",
+					}
+
+					for _, layout := range combinedLayouts {
+						timeVal, err = time.Parse(layout, cellValue)
+						if err == nil {
+							break
+						}
+					}
+
+					if err != nil {
+						for _, layout := range dateLayouts {
+							timeVal, err = time.Parse(layout, cellValue)
+							if err == nil {
+								break
+							}
+						}
+					}
+
+					if err != nil {
+						for _, layout := range timeLayouts {
+							timeVal, err = time.Parse(layout, cellValue)
+							if err == nil {
+								break
+							}
+						}
+					}
+
+					field.Set(reflect.ValueOf(timeVal))
+					log.Printf("from: %#v", cellValue)
+					log.Printf("be  : %#v", timeVal)
+				}
+			default:
+				return errors.New("unsupported field type: " + field.Type().Name())
 			}
 		}
 

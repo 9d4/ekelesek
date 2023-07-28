@@ -3,7 +3,9 @@ package eksel
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/xuri/excelize/v2"
+	"log"
 	"testing"
+	"time"
 )
 
 func TestParse(t *testing.T) {
@@ -64,6 +66,23 @@ func TestParse2(t *testing.T) {
 	assert.Equal(t, expect, d)
 }
 
+func TestParse_time(t *testing.T) {
+	rows := openT(t, "./testdata/data-time.xlsx")
+	headerMap := map[string]string{
+		"Time Start": "ts",
+		"Time End":   "te",
+		"Date":       "date",
+	}
+	type Data struct {
+		Start time.Time `lookup:"ts"`
+		End   time.Time `lookup:"te"`
+		Date  time.Time `lookup:"date"`
+	}
+	var d []Data
+	assert.NoError(t, Parse(rows, headerMap, &d))
+	log.Printf("%#v", d)
+}
+
 func BenchmarkParse_1000(b *testing.B) {
 	rows := open(b, "./testdata/data-1000.xlsx")
 	headerMap := map[string]string{
@@ -97,5 +116,14 @@ func open(b *testing.B, filename string) *excelize.Rows {
 	assert.NoError(b, err, "unable to open file")
 	rows, err := file.Rows("Sheet1")
 	assert.NoError(b, err)
+	return rows
+}
+
+func openT(t *testing.T, filename string) *excelize.Rows {
+	t.Helper()
+	file, err := excelize.OpenFile(filename)
+	assert.NoError(t, err, "unable to open file")
+	rows, err := file.Rows("Sheet1")
+	assert.NoError(t, err)
 	return rows
 }
