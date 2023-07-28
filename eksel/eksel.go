@@ -86,7 +86,11 @@ func Parse(rows *excelize.Rows, header map[string]string, dest interface{}) erro
 				return errors.New("invalid field: " + field.String())
 			}
 
-			cellValue := cells[idx]
+			cellValue := ""
+			if idx < len(cells) {
+				cellValue = cells[idx]
+			}
+
 			switch field.Kind() {
 			case reflect.String:
 				field.SetString(cellValue)

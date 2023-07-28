@@ -83,6 +83,32 @@ func TestParse_time(t *testing.T) {
 	log.Printf("%#v", d)
 }
 
+func TestParse_uncomplete(t *testing.T) {
+	rows := openT(t, "./testdata/data-uncomplete.xlsx")
+	headerMap := map[string]string{
+		"Name":             "name",
+		"Phone":            "phone",
+		"Email":            "email",
+		"Age":              "age",
+		"Address":          "address",
+		"Favourite Number": "fav_num",
+		"Country":          "country",
+	}
+	type Data struct {
+		Name    string `lookup:"name"`
+		Phone   string `lookup:"phone"`
+		Email   string `lookup:"email"`
+		Age     int    `lookup:"age"`
+		Address string `lookup:"address"`
+		FavNum  int    `lookup:"fav_num"`
+		Country string `lookup:"country"`
+	}
+
+	var d []Data
+	assert.NoError(t, Parse(rows, headerMap, &d))
+	log.Printf("%#v", d)
+}
+
 func BenchmarkParse_1000(b *testing.B) {
 	rows := open(b, "./testdata/data-1000.xlsx")
 	headerMap := map[string]string{
