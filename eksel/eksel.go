@@ -36,6 +36,12 @@ func Parse(rows *excelize.Rows, header map[string]string, dest interface{}) erro
 		return errors.New("dest must be a pointer to a slice")
 	}
 
+	// Case-insensitive
+	for s, s2 := range header {
+		header[strings.ToLower(s)] = s2
+		delete(header, s)
+	}
+
 	// Get the type of the slice elements
 	elemType := destValue.Elem().Type().Elem()
 	if elemType.Kind() != reflect.Struct {
@@ -71,7 +77,7 @@ func Parse(rows *excelize.Rows, header map[string]string, dest interface{}) erro
 		// Map header index
 		if i == 0 {
 			for idx, cell := range cells {
-				lookupKey, exists := header[cell]
+				lookupKey, exists := header[strings.ToLower(cell)]
 				if exists {
 					fieldMapIndex[idx] = fieldMap[lookupKey]
 				}
