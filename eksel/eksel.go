@@ -3,7 +3,6 @@ package eksel
 import (
 	"errors"
 	"github.com/xuri/excelize/v2"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -36,10 +35,10 @@ func Parse(rows *excelize.Rows, header map[string]string, dest interface{}) erro
 		return errors.New("dest must be a pointer to a slice")
 	}
 
-	// Case-insensitive
+	// Case-insensitive. copy original to prevent reference bug
+	copyHeader := make(map[string]string)
 	for s, s2 := range header {
-		header[strings.ToLower(s)] = s2
-		delete(header, s)
+		copyHeader[strings.ToLower(s)] = s2
 	}
 
 	// Get the type of the slice elements
@@ -77,7 +76,7 @@ func Parse(rows *excelize.Rows, header map[string]string, dest interface{}) erro
 		// Map header index
 		if i == 0 {
 			for idx, cell := range cells {
-				lookupKey, exists := header[strings.ToLower(cell)]
+				lookupKey, exists := copyHeader[strings.ToLower(cell)]
 				if exists {
 					fieldMapIndex[idx] = fieldMap[lookupKey]
 				}
@@ -173,8 +172,6 @@ func Parse(rows *excelize.Rows, header map[string]string, dest interface{}) erro
 					}
 
 					field.Set(reflect.ValueOf(timeVal))
-					log.Printf("from: %#v", cellValue)
-					log.Printf("be  : %#v", timeVal)
 				}
 			default:
 				return errors.New("unsupported field type: " + field.Type().Name())

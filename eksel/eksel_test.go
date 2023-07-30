@@ -41,11 +41,9 @@ func TestParse(t *testing.T) {
 	assert.Equal(t, out, d)
 }
 
-func TestParse2(t *testing.T) {
+func TestParse_multipleTimes(t *testing.T) {
 	file, err := excelize.OpenFile("./testdata/data-unsorted-header.xlsx")
 	assert.NoError(t, err, "unable to open file")
-	rows, err := file.Rows("Sheet1")
-	assert.NoError(t, err)
 
 	headerMap := map[string]string{
 		"Name":     "name",
@@ -57,13 +55,16 @@ func TestParse2(t *testing.T) {
 		Age      int    `lookup:"age"`
 		Birthday string `lookup:"birthday"`
 	}
-	d := []Data{}
-
-	err = Parse(rows, headerMap, &d)
-	assert.NoError(t, err)
-
 	expect := []Data{{Name: "Kaye Goff", Age: 26, Birthday: "April"}, {Name: "Adrienne Kirby", Age: 22, Birthday: "May"}, {Name: "John", Age: 27, Birthday: "May"}}
-	assert.Equal(t, expect, d)
+	for i := 0; i < 10; i++ {
+		rows, err := file.Rows("Sheet1")
+		assert.NoError(t, err)
+
+		var d []Data
+		err = Parse(rows, headerMap, &d)
+		assert.NoError(t, err)
+		assert.Equal(t, expect, d, "loop(N):", i, headerMap)
+	}
 }
 
 func TestParse_time(t *testing.T) {
@@ -107,6 +108,32 @@ func TestParse_uncomplete(t *testing.T) {
 	var d []Data
 	assert.NoError(t, Parse(rows, headerMap, &d))
 	log.Printf("%#v", d)
+}
+
+func BenchmarkParse_expected(b *testing.B) {
+	headerMap := map[string]string{
+		"Name":     "name",
+		"Age":      "age",
+		"Birthday": "birthday",
+	}
+	type Data struct {
+		Name     string `lookup:"name"`
+		Age      int    `lookup:"age"`
+		Birthday string `lookup:"birthday"`
+	}
+	file, err := excelize.OpenFile("./testdata/data-unsorted-header.xlsx")
+	assert.NoError(b, err, "unable to open file")
+	expect := []Data{{Name: "Kaye Goff", Age: 26, Birthday: "April"}, {Name: "Adrienne Kirby", Age: 22, Birthday: "May"}, {Name: "John", Age: 27, Birthday: "May"}}
+
+	for i := 0; i < b.N; i++ {
+		rows, err := file.Rows("Sheet1")
+		assert.NoError(b, err)
+
+		var d []Data
+		err = Parse(rows, headerMap, &d)
+		assert.NoError(b, err)
+		assert.Equal(b, expect, d)
+	}
 }
 
 func BenchmarkParse_1000(b *testing.B) {
